@@ -1,0 +1,21 @@
+.{
+    .name = "zcron",
+    .version = "0.0.0",
+    .dependencies = .{
+        .zeit = .{
+            .url = "https://github.com/rockorager/zeit/archive/refs/tags/v0.4.4.tar.gz",
+            .hash = "12204b653c90b503f89e2f1a73c4754b83fb7275c100c81872deaca12c9f17e334ec",
+        },
+        .mecha = .{
+            .url = "https://github.com/Hejsil/mecha/archive/refs/tags/0.9.0.tar.gz",
+            .hash = "12206311fbaae8a0adc35e4835ddd9bcc1ff8fff756c9df40e19133f007fa05d3948",
+        },
+    },
+    .paths = .{
+        "build.zig",
+        "build.zig.zon",
+        "src",
+        //"LICENSE",
+        //"README.md",
+    },
+}
