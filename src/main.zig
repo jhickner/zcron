@@ -65,6 +65,9 @@ pub fn main() !void {
 
     const stdout = std.io.getStdOut().writer();
     try stdout.print("zcron loaded with {} entries.\n", .{entries.len});
+    for (entries) |entry| {
+        std.debug.print("entry schedule: {any}\n", .{entry.schedule});
+    }
 
     try stdout.print("\nTODO:\n- allow comments in conf\n", .{});
 
@@ -78,8 +81,14 @@ pub fn main() !void {
         for (entries) |entry| {
             if (isScheduleMatch(entry.schedule, local_now.time())) {
                 try stdout.print("{s}\n", .{entry.title});
-                const cmd = try mkCommand(allocator, entry.title);
-                var cp = std.process.Child.init(cmd, allocator);
+
+                // const args = try parser.cmd.parse(allocator, entry.title);
+                // const converted = @as([]const []const u8, args.value);
+                // std.debug.print("converted: {any}\n", .{converted});
+
+                //const cmd = try mkCommand(allocator, entry.title);
+                const cmd = [_][]const u8{ "bash", "-c", entry.title };
+                var cp = std.process.Child.init(&cmd, allocator);
                 try cp.spawn();
             }
         }

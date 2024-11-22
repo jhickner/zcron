@@ -36,14 +36,14 @@ pub const entries = m.many(entry, .{ .separator = line_break });
 
 const entry = m.combine(.{
     schedule,
-    space,
+    ws,
     m.many(m.ascii.range(32, 126), .{}),
 }).map(toEntry);
 
-const schedule = m.many(components, .{ .separator = space, .max = 6 }).convert(toSchedule);
+const schedule = m.many(components, .{ .separator = ws, .min = 6, .max = 6 }).convert(toSchedule);
 
 const components = m.combine(.{
-    m.many(component, .{ .separator = comma }),
+    m.many(component, .{ .min = 1, .separator = comma }),
     m.opt(step),
 }).convert(maybeAddStep);
 
@@ -61,7 +61,7 @@ const range = m.combine(.{
     number,
 }).convert(toRange);
 
-const number = m.many(m.ascii.digit(10), .{ .collect = false }).map(digitsToNumber);
+const number = m.many(m.ascii.digit(10), .{ .min = 1, .collect = false }).map(digitsToNumber);
 
 const step = m.combine(.{
     m.ascii.char('/').discard(),
@@ -69,11 +69,14 @@ const step = m.combine(.{
 });
 
 const comma = m.ascii.char(',').discard();
-const space = m.ascii.char(' ').discard();
+const ws = m.many(m.oneOf(.{
+    m.ascii.char('\t'),
+    m.ascii.char(' '),
+}), .{}).discard();
 
 const line_break = m.oneOf(.{
-    m.ascii.char('\n'),
     m.ascii.char('\r'),
+    m.ascii.char('\n'),
 }).discard();
 
 /////////////////////////////////////////////////////////////////////////////
@@ -182,10 +185,24 @@ fn toScheduleRange(comptime S: usize, offset: usize, args: []Component) ![S]bool
     return result;
 }
 
+const spaces = m.many(m.ascii.char(' '), .{}).discard();
+const word = m.many(m.ascii.range(33, 126), .{ .collect = false });
+const quoted_string = m.combine(.{
+    m.ascii.char('"').discard(),
+    m.many(word, .{ .separator = spaces, .collect = false }),
+    m.ascii.char('"').discard(),
+});
+pub const cmd = m.many(m.oneOf(.{ word, quoted_string }), .{ .separator = spaces });
+
 test "parser" {
     var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
     defer arena.deinit();
     const alloc = arena.allocator();
+
+    // try m.expectResult([]const []const u8, .{
+    //     .value = &[_][]const u8{ "bash", "-c", "cat <(sed '/---/q' ~/.motd) | dialog" },
+    //     .rest = "",
+    // }, cmd.parse(alloc, "bash -c \"cat <(sed '/---/q' ~/.motd) | dialog\""));
 
     try m.expectResult(u8, .{ .value = 123, .rest = "" }, number.parse(alloc, "123"));
     try m.expectResult(
