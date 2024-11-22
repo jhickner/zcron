@@ -40,6 +40,7 @@ pub const entries = m.many(m.combine(.{
 
 const blank_line = m.combine(.{ ws, line_break }).discard();
 const comment = m.combine(.{
+    ws,
     m.ascii.char('#'),
     m.many(m.ascii.not(line_break), .{}),
     line_break,
