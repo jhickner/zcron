@@ -49,7 +49,10 @@ fn loadEntries(alloc: std.mem.Allocator, conf_name: []const u8) ![]parser.CronEn
     const contents = try file.readToEndAlloc(alloc, 1024 * 1024); // 1MB max
     defer alloc.free(contents);
 
-    const parsed = try parser.entries.parse(alloc, contents);
+    const parsed = parser.entries.parse(alloc, contents) catch |err| {
+        std.debug.print("Parsing error: {}\n", .{err});
+        std.process.exit(1);
+    };
     return parsed.value;
 }
 

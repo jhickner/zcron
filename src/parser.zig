@@ -98,8 +98,14 @@ fn toSingle(d: u8) Component {
 fn maybeAddStep(_: std.mem.Allocator, args: std.meta.Tuple(&[_]type{ []Component, ?u8 })) ![]Component {
     var cs = args[0];
     if (args[1]) |n| {
-        if (args[0].len != 1) return error.InvalidStep_RequiresOneSpecifier;
-        if (cs[0].tp == .single) return error.InvalidStep_RequiresAllOrRange;
+        if (args[0].len != 1) {
+            std.debug.print("Invalid step: requires exactly one specifier\n", .{});
+            return error.ParsingFailed;
+        }
+        if (cs[0].tp == .single) {
+            std.debug.print("Invalid step: requires '*' or range\n", .{});
+            return error.ParsingFailed;
+        }
         cs[0].step = n;
     }
     return cs;
@@ -108,7 +114,10 @@ fn maybeAddStep(_: std.mem.Allocator, args: std.meta.Tuple(&[_]type{ []Component
 fn toRange(_: std.mem.Allocator, nums: std.meta.Tuple(&[_]type{ u8, u8 })) !Component {
     const start = nums[0];
     const end = nums[1];
-    if (start > end) return error.InvalidRange;
+    if (start > end) {
+        std.debug.print("Invalid range: start ({}) must be less than or equal to end ({})\n", .{ start, end });
+        return error.ParsingFailed;
+    }
     return .{ .tp = .{ .range = .{ .start = start, .end = end } } };
 }
 
@@ -129,7 +138,10 @@ fn toSchedule(_: std.mem.Allocator, args: [][]Component) !CronSchedule {
     if (args.len > 4) result.months = try toScheduleRange(12, 1, args[4]);
     // days 0-6, 0==Sunday
     if (args.len > 5) result.day_of_week = try toScheduleRange(7, 0, args[5]);
-    if (args.len > 6) return error.TooManyScheduleComponents;
+    if (args.len > 6) {
+        std.debug.print("Too many schedule components provided\n", .{});
+        return error.ParsingFailed;
+    }
 
     return result;
 }
@@ -147,11 +159,17 @@ fn toScheduleRange(comptime S: usize, offset: usize, args: []Component) ![S]bool
                 }
             },
             .single => |v| {
-                if (v -| offset >= S) return error.ValueTooLarge;
+                if (v -| offset >= S) {
+                    std.debug.print("Value {} is too large for range size {}\n", .{ v, S });
+                    return error.ParsingFailed;
+                }
                 result[v -| offset] = true;
             },
             .range => |r| {
-                if (r.start -| offset >= S or r.end -| offset >= S) return error.RangeTooLarge;
+                if (r.start -| offset >= S or r.end -| offset >= S) {
+                    std.debug.print("Range {}-{} is too large for range size {}\n", .{ r.start, r.end, S });
+                    return error.ParsingFailed;
+                }
 
                 const stp = c.step orelse 1;
                 var i: u8 = r.start;
