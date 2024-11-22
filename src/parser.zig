@@ -32,12 +32,24 @@ const Component = struct {
 /////////////////////////////////////////////////////////////////////////////
 // Parsers
 
-pub const entries = m.many(entry, .{ .separator = line_break });
+pub const entries = m.many(m.combine(.{
+    // any number of blank lines or comments preceeding each entry
+    m.many(m.oneOf(.{ blank_line, comment }), .{ .collect = false }).discard(),
+    entry,
+}), .{});
+
+const blank_line = m.combine(.{ ws, line_break }).discard();
+const comment = m.combine(.{
+    m.ascii.char('#'),
+    m.many(m.ascii.not(line_break), .{}),
+    line_break,
+}).discard();
 
 const entry = m.combine(.{
     schedule,
     ws,
     m.many(m.ascii.range(32, 126), .{}),
+    line_break,
 }).map(toEntry);
 
 const schedule = m.many(components, .{ .separator = ws, .min = 6, .max = 6 }).convert(toSchedule);
@@ -186,10 +198,10 @@ fn toScheduleRange(comptime S: usize, offset: usize, args: []Component) ![S]bool
 }
 
 const spaces = m.many(m.ascii.char(' '), .{}).discard();
-const word = m.many(m.ascii.range(33, 126), .{ .collect = false });
+const word = m.many(m.ascii.range(33, 126), .{ .min = 1, .collect = false });
 const quoted_string = m.combine(.{
     m.ascii.char('"').discard(),
-    m.many(word, .{ .separator = spaces, .collect = false }),
+    m.many(word, .{ .min = 1, .separator = spaces, .collect = false }),
     m.ascii.char('"').discard(),
 });
 pub const cmd = m.many(m.oneOf(.{ word, quoted_string }), .{ .separator = spaces });
@@ -203,6 +215,8 @@ test "parser" {
     //     .value = &[_][]const u8{ "bash", "-c", "cat <(sed '/---/q' ~/.motd) | dialog" },
     //     .rest = "",
     // }, cmd.parse(alloc, "bash -c \"cat <(sed '/---/q' ~/.motd) | dialog\""));
+    // const t1 = try cmd.parse(alloc, "bash -c \"cat <(sed '/---/q' ~/.motd) | dialog\"");
+    // std.debug.print("t1: {s}\n", .{t1.value});
 
     try m.expectResult(u8, .{ .value = 123, .rest = "" }, number.parse(alloc, "123"));
     try m.expectResult(

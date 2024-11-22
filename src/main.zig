@@ -65,11 +65,6 @@ pub fn main() !void {
 
     const stdout = std.io.getStdOut().writer();
     try stdout.print("zcron loaded with {} entries.\n", .{entries.len});
-    for (entries) |entry| {
-        std.debug.print("entry schedule: {any}\n", .{entry.schedule});
-    }
-
-    try stdout.print("\nTODO:\n- allow comments in conf\n", .{});
 
     const local = try z.local(allocator, null);
     defer local.deinit();
