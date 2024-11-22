@@ -52,7 +52,7 @@ const entry = m.combine(.{
     line_break,
 }).map(toEntry);
 
-const schedule = m.many(components, .{ .separator = ws, .min = 6, .max = 6 }).convert(toSchedule);
+const schedule = m.many(components, .{ .separator = ws, .min = 1 }).convert(toSchedule);
 
 const components = m.combine(.{
     m.many(component, .{ .min = 1, .separator = comma }),
